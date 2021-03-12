@@ -1,16 +1,16 @@
 //=============================================================================
-// RPGツクールMZ - LL_StandingPicture.js
+// RPGツクールMZ - LL_StandingPicture.js v2.3.0
 //-----------------------------------------------------------------------------
 // ルルの教会 (Lulu's Church)
 // https://nine-yusha.com/
 //
-// Licensed under The MIT License
-// https://opensource.org/licenses/mit-license.php
+// URL below for license details.
+// https://nine-yusha.com/plugin/
 //=============================================================================
 
 /*:
  * @target MZ
- * @plugindesc The standing picture is automatically displayed when the message window is displayed.
+ * @plugindesc A standing picture is displayed when the message window is displayed.
  * @author Lulu's Church
  * @url https://nine-yusha.com/plugin-spicture/
  *
@@ -20,12 +20,19 @@
  * when the message window is displayed.
  * Use control characters to display.
  *
+ * ※Half-width alphanumeric characters and underscore (_)
+ *   can be used for the standing picture ID.
+ *   The standing picture ID can also be specified by a variable.
+ *   【Example】\F[\V[1]]
+ *
  * Control Character:
- *   \F[n]   Show StandingPicture No.1. (Put List ID in "n") 【Example】\F[1]
- *   \M[s]   Play motion is StandingPicture. (Put motion name in "s") 【Example】\M[yes]
- *   \FF[n]  Show StandingPicture No.2. (Put List ID in "n")
- *   \MM[s]  Play motion is StandingPicture No.2. (Put motion name in "s")
- *   \AA[n]  Focus on StandingPicture No."n". (Put 1 or 2 in "n")
+ *   \F["ID"]   Show StandingPicture No.1.  【Example】\F[lulu_smile]
+ *   \M["MOTION"]   Play motion is StandingPicture.  【Example】\M[yes]
+ *   \AA[F]  Focus on StandingPicture No.1. (Darken No.2)
+ *   \FF["ID"]  Show StandingPicture No.2.
+ *   \MM["MOTION"]  Play motion is StandingPicture No.2.
+ *   \AA[FF]  Focus on StandingPicture No.2. (Darken No.1)
+ *   \AA[N]  Darken All.
  *
  * Motion List:
  *   yes, yesyes, no, noslow,
@@ -37,10 +44,7 @@
  *   Change Color Tone: Change the color tone of the standing picture.
  *
  * Creater: Lulu's Church
- * Update: 2020/9/28
- *
- * This software is released under the MIT License
- * https://opensource.org/licenses/mit-license.php
+ * Update: 2020/11/16
  *
  * @command setEnabled
  * @text Display ON・OFF
@@ -94,9 +98,13 @@
  * @default []
  * @type struct<sPictures>[]
  *
+ * @param picture1Settings
+ * @text No.1(\F) Settings
+ * @desc ※This item is not used.
+ *
  * @param transition
- * @text Transition (No.1)
- * @desc Standing Picture(F) is Specify the switching effect when displayed.
+ * @text Transition
+ * @desc Specify the switching effect when appearing / erasing.
  * @type select
  * @default 1
  * @option None
@@ -111,10 +119,22 @@
  * @value 4
  * @option Float Top
  * @value 5
+ * @parent picture1Settings
+ *
+ * @param foreFront
+ * @text Displayed in front of the window.
+ * @desc When turned on, it is displayed in front of the message window.
+ * @type boolean
+ * @default false
+ * @parent picture1Settings
+ *
+ * @param picture2Settings
+ * @text No.2(\FF) Settings
+ * @desc ※This item is not used.
  *
  * @param transition2
  * @text Transition (No.2)
- * @desc Standing Picture(FF) is Specify the switching effect when displayed.
+ * @desc Specify the switching effect when appearing / erasing.
  * @type select
  * @default 1
  * @option None
@@ -129,6 +149,30 @@
  * @value 4
  * @option Float Top
  * @value 5
+ * @parent picture2Settings
+ *
+ * @param foreFront2
+ * @text Displayed in front of the window.
+ * @desc When turned on, it is displayed in front of the message window.
+ * @type boolean
+ * @default false
+ * @parent picture2Settings
+ *
+ * @param focusToneAdjust
+ * @text Darkness at focus.
+ * @desc It ’s the darkness when the focus is applied. (-255～0)
+ * Adjust if it gets too dark. (initial: -96)
+ * @default -96
+ * @min -255
+ * @max 0
+ * @type number
+ *
+ * @param catheBootPicture
+ * @text Preloaded when the boot.
+ * @desc Eliminates display lag during browser play.
+ * Startup may be delayed depending on the number of images and line speed.
+ * @default true
+ * @type boolean
  */
 
 /*~struct~sPictures:
@@ -136,7 +180,7 @@
  * @param id
  * @text ID
  * @desc ID. It is used when calling with control characters.
- * @type number
+ * @type string
  *
  * @param imageName
  * @text Image File
@@ -238,21 +282,27 @@
 
 /*:ja
  * @target MZ
- * @plugindesc メッセージウィンドウ表示時に立ち絵を自動表示します。
+ * @plugindesc メッセージウィンドウ表示時に立ち絵を表示します。
  * @author ルルの教会
  * @url https://nine-yusha.com/plugin-spicture/
  *
  * @help LL_StandingPicture.js
  *
  * メッセージ内に専用の制御文字を入力することで、
- * 立ち絵を自動表示できます。
+ * 立ち絵を表示できます。
+ *
+ * ※立ち絵IDに半角英数字とアンダースコア(_)が使用できるようになりました。
+ *   lulu_smileのように[名前_表情名]と付けるとわかりやすいです。
+ *   また立ち絵IDは変数で指定することも可能です。 【例】\F[\V[1]]
  *
  * 専用制御文字:
- *   \F[n]   立ち絵n番を表示します。 【入力例】\F[1]
- *   \M[s]   立ち絵モーションsを再生します。 【入力例】\M[yes]
- *   \FF[n]  二枚目の立ち絵n番を表示します。
- *   \MM[s]  二枚目の立ち絵モーションsを再生します。
- *   \AA[n]  立ち絵n枚目を明るくし、もう一方を暗く表示します。
+ *   \F[立ち絵ID]       立ち絵1を表示します。 【例】\F[lulu_smile]
+ *   \M[モーション名]   立ち絵1のモーションを再生します。 【例】\M[yes]
+ *   \AA[F]             立ち絵1にフォーカスを当てます。 (立ち絵2を暗く)
+ *   \FF[立ち絵ID]      立ち絵2を表示します。
+ *   \MM[モーション名]  立ち絵2のモーションを再生します。
+ *   \AA[FF]            立ち絵2にフォーカスを当てます。 (立ち絵1を暗く)
+ *   \AA[N]             立ち絵を全て暗くします。
  *
  * 立ち絵モーション一覧:
  *   yes(頷く)、yesyes(二回頷く)、no(横に揺れる)、noslow(ゆっくり横に揺れる)
@@ -261,15 +311,19 @@
  *   runleft(画面左へ走り去る)、runright(画面右へ走り去る)
  *
  * プラグインコマンド:
- *   立ち絵表示ON・OFF: 立ち絵の表示・非表示を一括制御します。
+ *   立ち絵表示ON・OFF: 立ち絵の表示・非表示を一括制御します。 (初期値: ON)
  *   色調変更: 立ち絵の色調を変更します。
  *
- * 作者: ルルの教会
- * 作成日: 2020/9/28
+ * 利用規約:
+ *   ・著作権表記は必要ございません。
+ *   ・利用するにあたり報告の必要は特にございません。
+ *   ・商用・非商用問いません。
+ *   ・R18作品にも使用制限はありません。
+ *   ・ゲームに合わせて自由に改変していただいて問題ございません。
+ *   ・プラグイン素材としての再配布（改変後含む）は禁止させていただきます。
  *
- * このプラグインはMITライセンスで配布します。
- * ご自由にお使いくださいませ。
- * https://opensource.org/licenses/mit-license.php
+ * 作者: ルルの教会
+ * 作成日: 2021/2/25
  *
  * @command setEnabled
  * @text 立ち絵表示ON・OFF
@@ -278,7 +332,7 @@
  * @arg enabled
  * @text 立ち絵表示
  * @desc OFFにすると立ち絵が表示されなくなります。
-  *@default true
+ * @default true
  * @type boolean
  *
  * @command setTone
@@ -323,9 +377,13 @@
  * @default []
  * @type struct<sPictures>[]
  *
+ * @param picture1Settings
+ * @text 立ち絵1(\F)の設定
+ * @desc ※この項目は使用しません
+ *
  * @param transition
- * @text 切替効果 (立ち絵1)
- * @desc 立ち絵1(F)が表示されるときの切替効果を指定できます。
+ * @text 切替効果
+ * @desc 出現・消去時の切替効果を指定します。
  * @type select
  * @default 1
  * @option なし
@@ -340,10 +398,22 @@
  * @value 4
  * @option フロート上
  * @value 5
+ * @parent picture1Settings
+ *
+ * @param foreFront
+ * @text ウィンドウの前面に表示
+ * @desc ONにするとメッセージウィンドウよりも前面に表示されます。
+ * @type boolean
+ * @default false
+ * @parent picture1Settings
+ *
+ * @param picture2Settings
+ * @text 立ち絵2(\FF)の設定
+ * @desc ※この項目は使用しません
  *
  * @param transition2
- * @text 切替効果 (立ち絵2)
- * @desc 立ち絵2(FF)が表示されるときの切替効果を指定できます。
+ * @text 切替効果
+ * @desc 出現・消去時の切替効果を指定します。
  * @type select
  * @default 1
  * @option なし
@@ -358,14 +428,39 @@
  * @value 4
  * @option フロート上
  * @value 5
+ * @parent picture2Settings
+ *
+ * @param foreFront2
+ * @text ウィンドウの前面に表示
+ * @desc ONにするとメッセージウィンドウよりも前面に表示されます。
+ * @type boolean
+ * @default false
+ * @parent picture2Settings
+ *
+ * @param focusToneAdjust
+ * @text フォーカス時の暗さ
+ * @desc AA[s]でフォーカスを当てた時の暗さ(-255～0)です。
+ * 暗くなりすぎる場合に調整してください。(初期値: -96)
+ * @default -96
+ * @min -255
+ * @max 0
+ * @type number
+ *
+ * @param catheBootPicture
+ * @text ゲーム起動時に事前ロード
+ * @desc アツマールなどブラウザプレイ時の読み込み待ちを解消します。
+ * 画像数や回線速度により起動が遅くなる場合があります。
+ * @default true
+ * @type boolean
  */
 
 /*~struct~sPictures:ja
  *
  * @param id
- * @text ID
- * @desc IDです。立ち絵を制御文字で呼び出す際に使用します。
- * @type number
+ * @text 立ち絵ID
+ * @desc 立ち絵IDです。立ち絵を制御文字で呼び出す際に使用します。
+ * 半角英数字(_)で入力してください。(例: lulu_smile)
+ * @type string
  *
  * @param imageName
  * @text 画像ファイル名
@@ -476,12 +571,19 @@
  * Ingresando un carácter de control dedicado en el mensaje
  * Las imágenes de pie se pueden mostrar automáticamente.
  *
+ * ※Se pueden usar caracteres alfanuméricos de ancho medio y guión bajo (_)
+ *   para la identificación con foto de pie.
+ *   La identificación con foto de pie también se puede especificar mediante una variable.
+ *   【Ejemplo de entrada】\F[\V[1]]
+ *
  * Carácteres que van en el cuadro de texto:
- *   \F[n]   Se muestra la imagen de pie n. 【Ejemplo de entrada】\F[1]
- *   \M[s]   Reproducir movimiento de imágenes de pie. 【Ejemplo de entrada】\M[yes]
- *   \FF[n]  Se muestra la segunda imagen de pie n.
- *   \MM[s]  Reproduzca el segundo movimiento de imágenes de pie.
- *   \AA[n]  La enésima imagen de pie se ilumina y la otra se oscurece.。
+ *   \F["ID"]   Se muestra la imagen de pie 1.  【Ejemplo de entrada】\F[lulu_smile]
+ *   \M["MOTION"]   Reproduzca el movimiento de la imagen de pie 1. 【Ejemplo de entrada】\M[yes]
+ *   \AA[F]  Centrarse en la imagen de pie 1. (Oscurecer imagen de pie 2)
+ *   \FF["ID"]   Se muestra la imagen de pie 2.
+ *   \MM["MOTION"]   Reproduzca el movimiento de la imagen de pie 2.
+ *   \AA[FF]  Centrarse en la imagen de pie 2. (Oscurecer imagen de pie 1)
+ *   \AA[N]  Oscurecer todo.
  *
  * Lista de movimiento permanente:
  *   yes(cabecear)、yesyes(Asiente dos veces con la cabeza)、no(Agitar de lado)、noslow(Balancearse lentamente)
@@ -494,11 +596,7 @@
  *   Cambiar color: cambia el color de la imagen de pie。
  *
  * Autor: Lulu's Church
- * Fecha de creación: 2020/9/28
- *
- * Este complemento se distribuye bajo la licencia MIT.
- * Para ser usado libremente
- * https://opensource.org/licenses/mit-license.php
+ * Fecha de creación: 2020/11/16
  *
  * @command setEnabled
  * @text Visualización de imagen de pieON・OFF
@@ -552,9 +650,13 @@
  * @default []
  * @type struct<sPictures>[]
  *
+ * @param picture1Settings
+ * @text Ajuste de imagen de pie 1(\F).
+ * @desc ※Este artículo no se usa
+ *
  * @param transition
- * @text Efecto de cambio (Imagen de pie1)
- * @desc Imagen de pie1(F)Puede especificar el efecto de conmutación cuando se muestra.
+ * @text Efecto de cambio
+ * @desc Especifique el efecto de conmutación al aparecer / borrar.
  * @type select
  * @default 1
  * @option Ninguna
@@ -569,10 +671,22 @@
  * @value 4
  * @option En el flotador
  * @value 5
+ * @parent picture1Settings
+ *
+ * @param foreFront
+ * @text Mostrar en el frente de la ventana
+ * @desc Cuando se enciende, se muestra delante de la ventana del mensaje.
+ * @type boolean
+ * @default false
+ * @parent picture1Settings
+ *
+ * @param picture2Settings
+ * @text Ajuste de imagen de pie 2(\FF).
+ * @desc ※Este artículo no se usa
  *
  * @param transition2
- * @text Efecto de cambio (Imagen de pie2)
- * @desc Puede especificar el efecto de cambio cuando se muestra la imagen de pie 2 (FF).
+ * @text Efecto de cambio
+ * @desc Especifique el efecto de conmutación al aparecer / borrar.
  * @type select
  * @default 1
  * @option Ninguna
@@ -587,6 +701,30 @@
  * @value 4
  * @option En el flotador
  * @value 5
+ * @parent picture2Settings
+ *
+ * @param foreFront2
+ * @text Mostrar en el frente de la ventana
+ * @desc Cuando se enciende, se muestra delante de la ventana del mensaje.
+ * @type boolean
+ * @default false
+ * @parent picture2Settings
+ *
+ * @param focusToneAdjust
+ * @text Oscuridad en foco
+ * @desc La oscuridad cuando se aplica el enfoque. (-255～0)
+ * Ajuste si se pone demasiado oscuro. (inicial: -96)
+ * @default -96
+ * @min -255
+ * @max 0
+ * @type number
+ *
+ * @param catheBootPicture
+ * @text Precarga al inicio
+ * @desc Elimina el retraso de visualización durante el juego del navegador.
+ * Puede que tarde un poco en comenzar el juego.
+ * @default true
+ * @type boolean
  */
 
 /*~struct~sPictures:es
@@ -594,7 +732,7 @@
  * @param id
  * @text ID
  * @desc ID Se utiliza cuando se llama a una imagen de pie con un carácter de control.
- * @type number
+ * @type string
  *
  * @param imageName
  * @text Nombre del archivo de imagen
@@ -699,8 +837,15 @@
 	const pluginName = "LL_StandingPicture";
 
 	const parameters = PluginManager.parameters(pluginName);
+	// 立ち絵1の設定
 	const transition = Number(parameters["transition"] || 1);
+	const foreFront = eval(parameters["foreFront"] || "false");
+	// 立ち絵2の設定
 	const transition2 = Number(parameters["transition2"] || 1);
+	const foreFront2 = eval(parameters["foreFront2"] || "false");
+
+	const focusToneAdjust = Number(parameters["focusToneAdjust"] || -96);
+	const catheBootPicture = eval(parameters["catheBootPicture"] || "true");
 	const sPictures = JSON.parse(parameters["sPictures"] || "null");
 	let sPictureLists = [];
 	if (sPictures) {
@@ -748,9 +893,6 @@
 		"none":      0
 	};
 
-	// フォーカス時の色調調整値 (暗くなりすぎる場合、数値を調整してください)
-	const focusToneAdjust = -96;
-
 	//-----------------------------------------------------------------------------
 	// ExStandingPicture
 	//
@@ -778,8 +920,16 @@
 			elm._spSprite2.originY = 0;
 			elm._spSprite2.showing = false;
 			// 重なり順を指定
-			elm.addChild(elm._spSprite2);
-			elm.addChild(elm._spSprite);
+			if (foreFront) {
+				elm.addChildAt(elm._spSprite, elm.children.indexOf(elm._windowLayer) + 1);
+			} else {
+				elm.addChildAt(elm._spSprite, elm.children.indexOf(elm._spriteset) + 1);
+			}
+			if (foreFront2) {
+				elm.addChildAt(elm._spSprite2, elm.children.indexOf(elm._windowLayer) + 1);
+			} else {
+				elm.addChildAt(elm._spSprite2, elm.children.indexOf(elm._spriteset) + 1);
+			}
 		}
 
 		static update (elm) {
@@ -801,20 +951,11 @@
 			}
 
 			// フォーカス処理
-			if (focusSPicture == 1) {
-				elm._spSprite2.setColorTone([
-					$gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone[0] + focusToneAdjust : focusToneAdjust,
-					$gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone[1] + focusToneAdjust : focusToneAdjust,
-					$gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone[2] + focusToneAdjust : focusToneAdjust,
-					$gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone[3] : 0
-				]);
-			} else if (focusSPicture == 2) {
-				elm._spSprite.setColorTone([
-					$gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone[0] + focusToneAdjust : focusToneAdjust,
-					$gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone[1] + focusToneAdjust : focusToneAdjust,
-					$gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone[2] + focusToneAdjust : focusToneAdjust,
-					$gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone[3] : 0
-				]);
+			if (focusSPicture == 1 || focusSPicture == 0) {
+				elm._spSprite2.setBlendColor([0, 0, 0, (focusToneAdjust * -1)]);
+			}
+			if (focusSPicture == 2 || focusSPicture == 0) {
+				elm._spSprite.setBlendColor([0, 0, 0, (focusToneAdjust * -1)]);
 			}
 
 			// フェード処理
@@ -899,6 +1040,7 @@
 				}
 				sSprite.blendMode = Number(sPicture.blendMode);
 				sSprite.setColorTone($gameSystem._StandingPictureTone ? $gameSystem._StandingPictureTone : [0, 0, 0, 0]);
+				sSprite.setBlendColor([0, 0, 0, 0]);
 				sSprite.scale.x = calcScaleX / 100;
 				sSprite.scale.y = calcScaleY / 100;
 				sSprite.showing = true;
@@ -1081,9 +1223,9 @@
 		ExStandingPicture.update(this);
 	};
 
-	const _Scene_Map_createSpriteset = Scene_Map.prototype.createSpriteset;
-	Scene_Map.prototype.createSpriteset = function() {
-		_Scene_Map_createSpriteset.apply(this, arguments);
+	const _Scene_Map_createDisplayObjects = Scene_Map.prototype.createDisplayObjects;
+	Scene_Map.prototype.createDisplayObjects = function() {
+		_Scene_Map_createDisplayObjects.apply(this, arguments);
 		ExStandingPicture.create(this);
 	};
 
@@ -1093,9 +1235,9 @@
 		ExStandingPicture.update(this);
 	};
 
-	const _Scene_Battle_createSpriteset = Scene_Battle.prototype.createSpriteset;
-	Scene_Battle.prototype.createSpriteset = function() {
-		_Scene_Battle_createSpriteset.apply(this, arguments);
+	const _Scene_Battle_createDisplayObjects = Scene_Battle.prototype.createDisplayObjects;
+	Scene_Battle.prototype.createDisplayObjects = function() {
+		_Scene_Battle_createDisplayObjects.apply(this, arguments);
 		ExStandingPicture.create(this);
 	};
 
@@ -1113,17 +1255,22 @@
 
 	const _Window_Message_startMessage = Window_Message.prototype.startMessage;
 	Window_Message.prototype.startMessage = function() {
-		// 専用制御文字を取得 (\F[n])
+		let messageAllText = $gameMessage.allText();
+		messageAllText = messageAllText.replace(/\\V\[(\d+)\]/gi, (_, p1) =>
+			$gameVariables.value(parseInt(p1))
+		);
+
+		// 専用制御文字を取得 (\F[s])
 		let sPictureNumber = null;
-		let processEscapeNumber = $gameMessage.allText().match(/\\F\[(\d+)\]/);
+		let processEscapeNumber = messageAllText.match(/\\F\[(\w+)\]/);
 		if (processEscapeNumber) {
 			if (processEscapeNumber[1]) {
 				sPictureNumber = processEscapeNumber[1];
 			}
 		}
-		// 専用制御文字を取得 (\FF[n])
+		// 専用制御文字を取得 (\FF[s])
 		let sPictureNumber2 = null;
-		processEscapeNumber = $gameMessage.allText().match(/\\FF\[(\d+)\]/);
+		processEscapeNumber = messageAllText.match(/\\FF\[(\w+)\]/);
 		if (processEscapeNumber) {
 			if (processEscapeNumber[1]) {
 				sPictureNumber2 = processEscapeNumber[1];
@@ -1131,7 +1278,7 @@
 		}
 		// 専用制御文字を取得 (\M[s])
 		let sPictureMotion = null;
-		processEscapeNumber = $gameMessage.allText().match(/\\M\[(\w+)\]/);
+		processEscapeNumber = messageAllText.match(/\\M\[(\w+)\]/);
 		if (processEscapeNumber) {
 			if (processEscapeNumber[1]) {
 				sPictureMotion = processEscapeNumber[1];
@@ -1139,28 +1286,30 @@
 		}
 		// 専用制御文字を取得 (\MM[s])
 		let sPictureMotion2 = null;
-		processEscapeNumber = $gameMessage.allText().match(/\\MM\[(\w+)\]/);
+		processEscapeNumber = messageAllText.match(/\\MM\[(\w+)\]/);
 		if (processEscapeNumber) {
 			if (processEscapeNumber[1]) {
 				sPictureMotion2 = processEscapeNumber[1];
 			}
 		}
-		// 専用制御文字を取得 (\AA[n])
+		// 専用制御文字を取得 (\AA[s])
 		focusSPicture = null;
-		processEscapeNumber = $gameMessage.allText().match(/\\AA\[(\d+)\]/);
+		processEscapeNumber = messageAllText.match(/\\AA\[(\w+)\]/);
 		if (processEscapeNumber) {
 			if (processEscapeNumber[1]) {
 				focusSPicture = processEscapeNumber[1];
+				// v2.1.0 \AA[F]、\AA[FF]、\AA[N]を置換
+				if (focusSPicture == "F") focusSPicture = 1;
+				if (focusSPicture == "FF") focusSPicture = 2;
+				if (focusSPicture == "N") focusSPicture = 0;
 			}
 		}
 		// 立ち絵1を更新
 		if (sPictureNumber) {
 			let sPicture = sPictureLists.find(function(item, index) {
-				if (parseInt(item.id) == sPictureNumber) return true;
+				if (String(item.id) == sPictureNumber) return true;
 			});
 			spriteSPicture = sPicture;
-			// spriteSPicture = JSON.stringify(sPicture);
-			// spriteSPicture = JSON.parse(spriteSPicture);
 			if (sPicture) {
 				showSPicture = true;
 				refSPicture = true;
@@ -1178,11 +1327,9 @@
 		// 立ち絵2を更新
 		if (sPictureNumber2) {
 			let sPicture2 = sPictureLists.find(function(item, index) {
-				if (parseInt(item.id) == sPictureNumber2) return true;
+				if (String(item.id) == sPictureNumber2) return true;
 			});
 			spriteSPicture2 = sPicture2;
-			// spriteSPicture2 = JSON.stringify(sPicture2);
-			// spriteSPicture2 = JSON.parse(spriteSPicture2);
 			if (sPicture2) {
 				showSPicture2 = true;
 				refSPicture2 = true;
@@ -1203,13 +1350,38 @@
 
 	const _Window_Base_convertEscapeCharacters = Window_Base.prototype.convertEscapeCharacters;
 	Window_Base.prototype.convertEscapeCharacters = function(text) {
+		// 立ち絵呼び出し用の制御文字(\V[n]内包)を追加
+		text = text.replace(/\\F\[\\V\[(\d+)\]\]/gi, "");
+		text = text.replace(/\\FF\[\\V\[(\d+)\]\]/gi, "");
+
 		// 立ち絵呼び出し用の制御文字を追加
-		text = text.replace(/\\F\[(\d+)\]/gi, "");
-		text = text.replace(/\\FF\[(\d+)\]/gi, "");
+		text = text.replace(/\\F\[(\w+)\]/gi, "");
+		text = text.replace(/\\FF\[(\w+)\]/gi, "");
 		text = text.replace(/\\M\[(\w+)\]/gi, "");
 		text = text.replace(/\\MM\[(\w+)\]/gi, "");
-		text = text.replace(/\\AA\[(\d+)\]/gi, "");
+		text = text.replace(/\\AA\[(\w+)\]/gi, "");
 
 		return _Window_Base_convertEscapeCharacters.call(this, text);
+	};
+
+
+	const _Scene_Boot_onDatabaseLoaded = Scene_Boot.prototype.onDatabaseLoaded;
+	Scene_Boot.prototype.onDatabaseLoaded = function() {
+		_Scene_Boot_onDatabaseLoaded.apply(this, arguments);
+
+		this.loadLLStandingPictures();
+	};
+
+	Scene_Boot.prototype.loadLLStandingPictures = function() {
+		if (!catheBootPicture) return;
+
+		// 立ち絵画像を事前読み込み
+		// const startTime = Date.now();
+		sPictureLists.forEach(function(elm) {
+			ImageManager.loadPicture(elm.imageName);
+		});
+		// const endTime = Date.now();
+
+		// console.log("LL_StandingPicture: Cathe OK (" + (endTime - startTime) + "ms)");
 	};
 })();
